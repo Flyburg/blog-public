@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>零式岚の地下室</title><description>主页</description><link>https://fuwari.vercel.app/</link><language>zh_CN</language><item><title>MkDocs 美化与进阶</title><link>https://fuwari.vercel.app/posts/mkdocs-advance/</link><guid isPermaLink="true">https://fuwari.vercel.app/posts/mkdocs-advance/</guid><description>本文通过几个例子，介绍如何对 MkDocs 网站进行美化和功能扩展，适合有一定基础的用户参考。</description><pubDate>Sun, 02 Feb 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;:::note[说明]
+本文核心内容在笔者的笔记本网站&lt;a href=&quot;https://note.flyburg.cc/self/mkdocs/&quot;&gt;原文&lt;/a&gt;中亦有记载，此页面为整理重制版。
+:::&lt;/p&gt;
+&lt;p&gt;有了前面的一系列工作，我们的 MkDocs 网站已经可以正常生成和部署了，请读者务必对整套流程熟悉之后再继续阅读本文。&lt;/p&gt;
+&lt;p&gt;本文中，笔者将通过几个例子，介绍一些 MkDocs 的高级用法。&lt;/p&gt;
+&lt;h2&gt;配置评论系统&lt;/h2&gt;
+&lt;p&gt;有很多评论系统可以集成到 MkDocs 中，这里选用最常用的 Giscus 作为例子，请读者以&lt;a href=&quot;https://squidfunk.github.io/mkdocs-material/setup/adding-a-comment-system/&quot;&gt;官方文档&lt;/a&gt;为准。&lt;/p&gt;
+&lt;p&gt;首先要安装 &lt;a href=&quot;https://github.com/apps/giscus&quot;&gt;Giscus GitHub App&lt;/a&gt; 并授权给你的仓库。&lt;/p&gt;
+&lt;p&gt;然后，去 &lt;a href=&quot;https://giscus.app/zh-CN&quot;&gt;Giscus 官网&lt;/a&gt;，跟着提示引导一步一步走下来，会获得一段代码，类似这样：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;lt;script src=&quot;https://giscus.app/client.js&quot;
+        data-repo=&quot;Fanovian/notebook&quot;
+        data-repo-id=&quot;R_kgDOJ2i3-Q&quot;
+        data-category=&quot;Announcements&quot;
+        data-category-id=&quot;DIC_kwDOJ2i3-c4CXtT_&quot;
+        data-mapping=&quot;pathname&quot;
+        data-strict=&quot;0&quot;
+        data-reactions-enabled=&quot;1&quot;
+        data-emit-metadata=&quot;0&quot;
+        data-input-position=&quot;bottom&quot;
+        data-theme=&quot;preferred_color_scheme&quot;
+        data-lang=&quot;zh-CN&quot;
+        crossorigin=&quot;anonymous&quot;
+        async&amp;gt;
+&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;接着在网站根目录创建目录和文件编辑 &lt;code&gt;overrides/comments.html&lt;/code&gt; 文件：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{% if page.meta.comments %}
+  &amp;lt;h2 id=&quot;__comments&quot;&amp;gt;{{ lang.t(&quot;meta.comments&quot;) }}&amp;lt;/h2&amp;gt;
+  &amp;lt;!-- Insert generated snippet here --&amp;gt;
+
+  &amp;lt;!-- Synchronize Giscus theme with palette --&amp;gt;
+  &amp;lt;script&amp;gt;
+    var giscus = document.querySelector(&quot;script[src*=giscus]&quot;)
+
+    // Set palette on initial load
+    var palette = __md_get(&quot;__palette&quot;)
+    if (palette &amp;amp;&amp;amp; typeof palette.color === &quot;object&quot;) {
+      var theme = palette.color.scheme === &quot;slate&quot;
+        ? &quot;transparent_dark&quot;
+        : &quot;light&quot;
+
+      // Instruct Giscus to set theme
+      giscus.setAttribute(&quot;data-theme&quot;, theme) 
+    }
+
+    // Register event handlers after documented loaded
+    document.addEventListener(&quot;DOMContentLoaded&quot;, function() {
+      var ref = document.querySelector(&quot;[data-md-component=palette]&quot;)
+      ref.addEventListener(&quot;change&quot;, function() {
+        var palette = __md_get(&quot;__palette&quot;)
+        if (palette &amp;amp;&amp;amp; typeof palette.color === &quot;object&quot;) {
+          var theme = palette.color.scheme === &quot;slate&quot;
+            ? &quot;transparent_dark&quot;
+            : &quot;light&quot;
+
+          // Instruct Giscus to change theme
+          var frame = document.querySelector(&quot;.giscus-frame&quot;)
+          frame.contentWindow.postMessage(
+            { giscus: { setConfig: { theme } } },
+            &quot;https://giscus.app&quot;
+          )
+        }
+      })
+    })
+  &amp;lt;/script&amp;gt;
+{% endif %}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;第三行的 &lt;code&gt;&amp;lt;!-- Insert generated snippet here --&amp;gt;&lt;/code&gt; 处粘贴上面的 Giscus 代码。&lt;/p&gt;
+&lt;p&gt;如果你对前端三件套比较了解，也可以对这个文件进行一些修改，比如添加一些样式。&lt;/p&gt;
+&lt;p&gt;配置好之后记得在 &lt;code&gt;mkdocs.yml&lt;/code&gt; 文件中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;theme:
+  custom_dir: overrides
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;来把这个文件引入到主题中。除此之外，许多其他自定义的 html 文件也可以放在这个文件夹中，这里直接在主题中一次引入了。&lt;/p&gt;
+&lt;p&gt;然后在你想要添加评论的页面的 Markdown 文件的头部添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;---
+comments: true
+---
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;即可在这个页面中添加评论系统。&lt;/p&gt;
+&lt;h2&gt;添加顶部公告&lt;/h2&gt;
+&lt;p&gt;在 &lt;code&gt;overrides&lt;/code&gt; 文件夹中创建 &lt;code&gt;main.html&lt;/code&gt; 文件：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{% extends &quot;base.html&quot; %}
+
+{% block announce %}
+  &amp;lt;!-- Add announcement here, including arbitrary HTML --&amp;gt;
+{% endblock %}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;中间填写 HTML 格式的公告内容。&lt;/p&gt;
+&lt;p&gt;然后在 &lt;code&gt;mkdocs.yml&lt;/code&gt; 文件中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;theme:
+  custom_dir: overrides
+  features:
+    - announce.dismiss
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;最后一行的作用是读者可以关闭公告直至公告内容更新，关掉功能则公告常驻。&lt;/p&gt;
+&lt;h2&gt;自定义配色和字体&lt;/h2&gt;
+&lt;p&gt;这个属于 CSS 的内容了。在 &lt;code&gt;docs&lt;/code&gt; 文件夹下创建 &lt;code&gt;stylesheets&lt;/code&gt; 文件夹，然后在其中创建 &lt;code&gt;extra.css&lt;/code&gt; 文件。&lt;/p&gt;
+&lt;p&gt;在 &lt;code&gt;extra.css&lt;/code&gt; 文件中写入你的 CSS 代码，比如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;:root {
+    --md-primary-fg-color:        #0287ac;
+    --md-primary-fg-color--light: #0287ac;
+    --md-primary-fg-color--dark:  #0287ac;
+    --md-accent-fg-color:         #0287ac;
+
+    /* --md-text-font: &quot;LXGW WenKai Screen&quot;;
+    --md-code-font: &quot;Menlo&quot;, &quot;LXGW WenKai Screen&quot;; */
+}
+
+[data-md-color-scheme=&quot;default&quot;] {
+    --md-footer-bg-color--dark: #ffffffd5;
+    --md-footer-fg-color--light: #000000c6;
+    --md-footer-fg-color--lighter: #0000009d;
+    --md-footer-fg-color--lightest: #000000;
+}
+
+[data-md-color-scheme=&quot;slate&quot;] {
+    --md-default-bg-color: #131313;
+    /* --md-default-bg-color--light: #161616;
+    --md-default-bg-color--lighter: #161616;
+    --md-default-bg-color--lightest: #161616; */
+    --md-default-fg-color: rgba(255, 253, 253, 0.868);
+    --md-default-fg-color--light: rgba(255, 255, 255, 0.854);
+    --md-default-fg-color--lighter: rgba(255, 255, 255, 0.393);
+    --md-default-fg-color--lightest: rgba(255, 255, 255, 0.58);
+    --md-primary-fg-color: #1f1e33;
+    --md-typeset-a-color: #ffffff;
+    --md-footer-fg-color: #fff;
+    --md-footer-bg-color: var(--md-default-bg-color);
+    --md-footer-bg-color--dark: var(--md-default-bg-color);
+    --md-footer-fg-color--light: #ffffffc3;
+    --md-footer-fg-color--lighter: #ffffffc4;
+    --md-code-bg-color: #1c1c1c;
+}
+
+.md-header__title {
+    font-weight: bold;
+    font-family: &quot;LXGW Wenkai Screen&quot;, sans-serif;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;笔者这里对日间模式和夜间模式都单独设置了一些自己喜欢的颜色，这些颜色的参数很多，具体可以看 &lt;a href=&quot;https://github.com/squidfunk/mkdocs-material/blob/master/src/templates/assets/stylesheets/main/_colors.scss&quot;&gt;Material for MkDocs 作者给出的示例&lt;/a&gt;，里面包含了所有的颜色定义。&lt;/p&gt;
+&lt;p&gt;同时笔者也对字体进行了设置，这里设置了正文和代码的字体，这里的字体是笔者自己下载的字体，你可以根据自己的喜好更改，可以是网上的字体链接，也可以下载之后引入。&lt;/p&gt;
+&lt;h3&gt;我的字体选择&lt;/h3&gt;
+&lt;p&gt;正文中，笔者使用非常出名的开源字体 &lt;a href=&quot;https://github.com/lxgw/LxgwWenKai&quot;&gt;霞鹜文楷&lt;/a&gt;，这是一款非常适合中文阅读的字体，同时也支持英文和数字。在网站设置中，参考了文章&lt;a href=&quot;https://hsiaofeng.com/archives/224.html&quot;&gt;在站点网页中使用霞鹜文楷（LXGW WenKai）&lt;/a&gt;，将字体 CSS 链接引入，使用的是屏幕阅读优化的版本。&lt;/p&gt;
+&lt;p&gt;代码字体是 &lt;a href=&quot;https://github.com/subframe7536/maple-font&quot;&gt;Maple Font&lt;/a&gt;，具体可以前往其&lt;a href=&quot;https://font.subf.dev/&quot;&gt;官网&lt;/a&gt;查看，比较符合笔者的审美。&lt;/p&gt;
+&lt;h3&gt;我的配色方案&lt;/h3&gt;
+&lt;p&gt;夹带点私货 (*´∀`)~♥&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;网站的日间模式主题色（&amp;lt;span style=&quot;color: #0287ac; font-weight: bold;&quot;&amp;gt;#0287ac&amp;lt;/span&amp;gt;）来源于动画《Girls Band Cry》中登场角色河原木桃香的代表色（&amp;lt;span style=&quot;color: #85c9dc; font-weight: bold;&quot;&amp;gt;#85c9dc&amp;lt;/span&amp;gt;），经过针对可读性的优化而得。&lt;/li&gt;
+&lt;li&gt;网站的夜间模式主题色（&amp;lt;span style=&quot;color: #1f1e33; font-weight: bold; background-color: rgba(255,255,255,0.4); padding: 2px 4px; border-radius: 3px;&quot;&amp;gt;#1f1e33&amp;lt;/span&amp;gt;）来源于曲师 かめりあ 的 Arcaea 独占曲目《#1f1e33》。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;插件的引入&lt;/h2&gt;
+&lt;p&gt;笔者使用了两个额外的 MkDocs 插件。&lt;/p&gt;
+&lt;p&gt;一个是 TonyCrane 学长的字数统计插件。&lt;/p&gt;
+&lt;p&gt;::github{repo=&quot;TonyCrane/mkdocs-statistics-plugin&quot;}&lt;/p&gt;
+&lt;p&gt;另一个是 ignorantshr 和 timvink 开发的自动标题插件。&lt;/p&gt;
+&lt;p&gt;::github{repo=&quot;ignorantshr/mkdocs-add-number-plugin&quot;}&lt;/p&gt;
+&lt;p&gt;插件的具体使用方式直接看仓库中的 README 即可。&lt;/p&gt;
+&lt;p&gt;需要注意的是，在本地安装好插件就可以渲染出效果，但是在 GitHub Pages 上渲染出效果需要构建页面的工作流中让 GitHub Actions 安装这些插件，需要在 &lt;code&gt;PublishMySite.yml&lt;/code&gt; 文件中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;jobs: # 工作流的具体内容
+  deploy:
+    runs-on: ubuntu-latest # 创建一个新的云端虚拟机 使用最新Ubuntu系统
+    steps:
+      - uses: actions/checkout@v2 # 先checkout到main分支
+      - uses: actions/setup-python@v2 # 再安装Python3和相关环境
+        with:
+          python-version: 3.x
+      - run: pip install mkdocs-material # 使用pip包管理工具安装mkdocs-material
+      - run: pip install mkdocs-statistics-plugin # 安装mkdocs-statistics-plugin
+      - run: pip install mkdocs-add-number-plugin # 安装mkdocs-add-number-plugin
+      - run: mkdocs gh-deploy --force # 使用mkdocs-material部署gh-pages分支
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;即先安装好所有的插件，然后再部署网站。否则 Actions 会报错。&lt;/p&gt;
+&lt;p&gt;此外在网站的主页自定义样式中还用到了下列插件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一言插件：&lt;a href=&quot;https://hitokoto.cn&quot;&gt;hitokoto&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;网站访问量统计插件：&lt;a href=&quot;http://busuanzi.ibruce.info&quot;&gt;不蒜子&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content:encoded></item><item><title>MkDocs + GitHub Pages 笔记本构建入门</title><link>https://fuwari.vercel.app/posts/mkdocs-basic/</link><guid isPermaLink="true">https://fuwari.vercel.app/posts/mkdocs-basic/</guid><description>本文介绍了如何使用 MkDocs 和 GitHub Pages 搭建一个个人笔记本网站的完整流程，适合初学者参考。</description><pubDate>Sat, 01 Feb 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;:::note[说明]
+本文核心内容在笔者的笔记本网站&lt;a href=&quot;https://note.flyburg.cc/self/mkdocs/&quot;&gt;原文&lt;/a&gt;中亦有记载，此页面为整理重制版。
+:::&lt;/p&gt;
+&lt;h2&gt;前言&lt;/h2&gt;
+&lt;p&gt;笔者在大一暑假（2023 年）接触到诸多学长的网页笔记本，逐渐对这种结构化、共享化记录自己的知识体系的方式产生兴趣。经过一段时间的探索与实践，笔者决定使用 MkDocs 与 GitHub Pages 这一工具来搭建自己的网页笔记本。一番折腾过后该网站于 2025 年春逐渐成形，本文即将网站的完整创建流程进行整理与分享。&lt;/p&gt;
+&lt;p&gt;与网上其他大部分教程不同的是，&lt;strong&gt;本文不会花非常大的篇幅来描述 MkDocs 站点的详细配置&lt;/strong&gt;，而是侧重于小白在搭建 MkDocs 站点时可能会遇到的问题和解决方法。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;由于本站并不是所有人眼中的最佳形态（包括笔者自己），所以请各位有更好的建议请不吝赐教，笔者将不胜感激。&lt;/em&gt;&lt;/p&gt;
+&lt;h3&gt;网页成果展示&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&quot;./show/homepage.png&quot; alt=&quot;homepage&quot; /&gt;
+&lt;img src=&quot;./show/list.png&quot; alt=&quot;list&quot; /&gt;
+&lt;img src=&quot;./show/note.png&quot; alt=&quot;note&quot; /&gt;
+&lt;img src=&quot;./show/friends.png&quot; alt=&quot;friends&quot; /&gt;&lt;/p&gt;
+&lt;h2&gt;总体构建思路&lt;/h2&gt;
+&lt;p&gt;为了搭建我们的笔记本，我们需要哪些东西？&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;把我们的文档从 Markdown 格式转为网页格式的工具，让网站&lt;strong&gt;能被自己看见&lt;/strong&gt;；&lt;/li&gt;
+&lt;li&gt;把这个静态网站部署到互联网上的工具，让网站&lt;strong&gt;能被别人看见&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3&gt;网站生成&lt;/h3&gt;
+&lt;p&gt;对于第一个工具，笔者的选择是 MkDocs + Material for MkDocs。MkDocs 是一个基于 Python 的静态网站生成器，详情见 &lt;a href=&quot;https://www.mkdocs.org&quot;&gt;MkDocs 官网&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;实际上，生成静态网站的工具远不止 MkDocs 一家，还有诸如 mdBook、Hugo 等等，本文以 MkDocs 为例，对整套流程熟悉之后，再尝试其他工具也会更加容易。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;至于为什么选择 MkDocs？&lt;/em&gt; 笔者认为作为一个笔记本来说，最重要的是排版&lt;strong&gt;简洁&lt;/strong&gt;和&lt;strong&gt;清晰&lt;/strong&gt;，并且&lt;strong&gt;易于维护&lt;/strong&gt;。在实操之后，读者会发现 MkDocs 的上手非常容易，而且对于新文档的添加与网站的维护非常简单和便捷。同时笔者认为笔记本不应该具有太多的花哨的效果，而是应该更加注重内容本身。&lt;/p&gt;
+&lt;p&gt;你也许会发现 MkDocs 官网的样式似乎有些简陋，与本站不同。因为本站还用了最著名的 MkDocs 主题 Material for MkDocs，详情见 &lt;a href=&quot;https://squidfunk.github.io/mkdocs-material/&quot;&gt;Material for MkDocs 官网&lt;/a&gt;。本教程的大多数内容也是参考这个主题的文档，请读者&lt;strong&gt;务必以 Material for MkDocs 的文档为准&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3&gt;网站部署&lt;/h3&gt;
+&lt;p&gt;对于第二个工具，我们需要一个“服务器”，来将我们的网站内容展示给用户。笔者选择了使用 GitHub 来托管网站源文件，并使用 GitHub Pages 来部署网站。&lt;/p&gt;
+&lt;p&gt;GitHub 的作用不必多说，作为全球最大的代码托管平台，它提供了免费的静态网站托管服务 GitHub Pages。详情见 &lt;a href=&quot;https://pages.github.com&quot;&gt;GitHub Pages 官网&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;实际上，GitHub Pages 并不是唯一的选择，还有诸如 GitLab Pages、Vercel、Netlify 等等，这些服务都提供了免费的静态网站托管服务，甚至这些服务在速度上可能还会更快。本教程选择 GitHub Pages 的原因是足够简单，因为网站代码本身就托管在 GitHub 上，所以直接使用 GitHub Pages 部署更加方便。&lt;/p&gt;
+&lt;p&gt;这是一个非常简单且零成本的部署方式，只需要一个 GitHub 账号，就可以免费部署一个甚至多个静态网站，还可以绑定自己的域名（如本站）。&lt;/p&gt;
+&lt;h2&gt;准备工作&lt;/h2&gt;
+&lt;h3&gt;基础知识&lt;/h3&gt;
+&lt;p&gt;你需要有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一定的 Markdown 语法基础；&lt;/li&gt;
+&lt;li&gt;一定的命令行操作能力；&lt;/li&gt;
+&lt;li&gt;一定的 Git 使用经验；&lt;/li&gt;
+&lt;li&gt;针对想 DIY 主题的用户，需要一些 HTML、CSS、JavaScript 基础知识；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;笔者正在使用 MacBook，所以相关操作除非特殊声明，否则都是基于 macOS 系统的。Linux/Windows 用户请自行替换相应命令（实际上主要是命令行操作的小差异，其他内容基本一致）。&lt;/p&gt;
+&lt;p&gt;:::caution[注意]
+对于本教程每一步涉及到的操作和命令，请读者先理解为什么这样做再执行，不要盲目复制粘贴。
+:::&lt;/p&gt;
+&lt;p&gt;后续中“本站”一般指的是笔者的 MkDocs 网站。&lt;/p&gt;
+&lt;h3&gt;Git 环境&lt;/h3&gt;
+&lt;p&gt;macOS 和 Linux 应该是自带的，Windows 用户可以从 &lt;a href=&quot;https://git-scm.com&quot;&gt;Git 官网&lt;/a&gt;下载安装包安装，网上有很多教程，这里不再赘述。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Windows 用户安装 Git 时，可以选择安装 Git Bash，安装好之后可以使用 Git Bash 来执行命令，这里面可以用一些常用的 Linux 命令，比如 &lt;code&gt;ls&lt;/code&gt;、&lt;code&gt;cd&lt;/code&gt; 等等（当然现在的 Terminal 也支持了）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;安装好后，记得设置好用户名和邮箱：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git config --global user.name &quot;Your Name&quot;
+git config --global user.email &quot;xxxxxx@xxxxx.com&quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;Python 环境&lt;/h3&gt;
+&lt;p&gt;对于 Linux/macOS 用户，可以选择自己习惯的包管理器安装 Python，如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;brew install python
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;对于 Windows 用户，可以直接从 &lt;a href=&quot;https://www.python.org&quot;&gt;Python 官网&lt;/a&gt; 下载安装包，安装时&lt;strong&gt;务必勾选&lt;/strong&gt;“Add Python to PATH”。相关的教程在网上非常多，自行搜索即可，最终效果是在终端中输入 &lt;code&gt;python --version&lt;/code&gt; 和 &lt;code&gt;pip --version&lt;/code&gt; 后能够看到版本号即可。&lt;/p&gt;
+&lt;p&gt;:::info[Python 环境管理]
+更推荐的做法是采用 Python 环境管理工具进行单独的 Python 环境配置，例如笔者使用的就是 Miniconda，这样可以避免不同项目之间的依赖冲突。
+:::&lt;/p&gt;
+&lt;h3&gt;MkDocs 环境&lt;/h3&gt;
+&lt;p&gt;直接安装 Material for MkDocs 即可，它会自动安装 MkDocs：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;pip install mkdocs-material
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;除了 pip 之外，还可以通过 docker 和 git 安装，详情见 &lt;a href=&quot;https://squidfunk.github.io/mkdocs-material/getting-started/#installation&quot;&gt;Material for MkDocs 官网&lt;/a&gt;，这里不再赘述。&lt;/p&gt;
+&lt;p&gt;最终安装的效果是在终端中输入 &lt;code&gt;mkdocs --version&lt;/code&gt; 后能够看到版本号即可。&lt;/p&gt;
+&lt;h2&gt;本地开发&lt;/h2&gt;
+&lt;h3&gt;初始化并运行 MkDocs 项目&lt;/h3&gt;
+&lt;p&gt;终端进入到你想要存放 MkDocs 项目的目录，然后执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mkdocs new site
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;其中 &lt;code&gt;site&lt;/code&gt; 是项目的名称，可以自定义，这个命令会在当前目录下创建一个名为 &lt;code&gt;site&lt;/code&gt; 的文件夹。进入 &lt;code&gt;site&lt;/code&gt; 文件夹，里面包含 MkDocs 项目的基本结构：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;.
+├── docs
+│   └── index.md
+└── mkdocs.yml
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;docs&lt;/code&gt; 文件夹是存放 Markdown 文件的地方，&lt;code&gt;mkdocs.yml&lt;/code&gt; 是 MkDocs 的配置文件，这两个文件是 MkDocs 项目的基础。&lt;/p&gt;
+&lt;p&gt;在此目录下输入：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mkdocs serve
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;你可以看到命令行输出：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;❯ mkdocs serve
+INFO    -  Building documentation...
+INFO    -  Cleaning site directory
+INFO    -  Documentation built in 0.03 seconds
+INFO    -  [11:09:37] Watching paths for changes: &apos;docs&apos;, &apos;mkdocs.yml&apos;
+INFO    -  [11:09:37] Serving on http://127.0.0.1:8000/
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这时前往链接 &lt;code&gt;http://127.0.0.1:8000/&lt;/code&gt;，你会看到一个简单的页面，这就是 MkDocs 生成的网站。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://s2.loli.net/2025/02/03/VU6LXtW5Zqc1isD.png&quot; alt=&quot;截屏2025-02-03 11.13.14.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;这个页面是 MkDocs 自动生成的首页，内容是 &lt;code&gt;docs/index.md&lt;/code&gt; 文件中的内容。你可以在这个文件中写入 Markdown 语法的内容，然后刷新页面，就能看到内容的变化。&lt;/p&gt;
+&lt;p&gt;按下 &lt;code&gt;Ctrl + C&lt;/code&gt; 终止 &lt;code&gt;mkdocs serve&lt;/code&gt; 命令。&lt;/p&gt;
+&lt;h3&gt;网站内容和样式设置&lt;/h3&gt;
+&lt;p&gt;你可能会奇怪，为什么这个页面看起来和本站不一样？这是因为本站使用了 Material for MkDocs 主题。&lt;/p&gt;
+&lt;p&gt;同时，本站的文章内容也不是直接写在 &lt;code&gt;docs/index.md&lt;/code&gt; 文件中的，而是在 &lt;code&gt;docs&lt;/code&gt; 文件夹下的其他 Markdown 文件中的。这些文件会被 MkDocs 自动识别并生成对应的页面。&lt;/p&gt;
+&lt;p&gt;以上这些内容和样式的设置大多都集中在 &lt;code&gt;mkdocs.yml&lt;/code&gt; 文件中，这个文件是 MkDocs 的配置文件，你可以在其中设置网站的标题、主题、导航栏等等。&lt;/p&gt;
+&lt;p&gt;下面给出一个简单的 &lt;code&gt;mkdocs.yml&lt;/code&gt; 文件示例（也参考了其他人的代码）：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# [Info]
+site_name: Fanovian&apos;s Notebook
+site_url: https://note.fanovian.cc/
+site_description: Fanovian 的笔记本
+
+# [UI]
+## [top]
+theme:
+  name: material
+  custom_dir: overrides
+  favicon: https://s2.loli.net/2025/01/27/oFMcIOLbZstxUjH.png
+  font:
+    text: LXGW WenKai Screen
+    code: Maple Mono
+  palette:
+    # Palette toggle for automatic mode
+    - media: &quot;(prefers-color-scheme)&quot;
+      toggle:
+        icon: material/auto-fix
+        name: 切换至日间模式
+    # Palette toggle for light mode
+    - media: &quot;(prefers-color-scheme: light)&quot;
+      scheme: default 
+      primary: var(--md-primary-fg-color)
+      toggle:
+        icon: material/toggle-switch
+        name: 切换至夜间模式
+    # Palette toggle for dark mode
+    - media: &quot;(prefers-color-scheme: dark)&quot;
+      scheme: slate
+      primary: var(--md-primary-fg-color)
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: 切换至跟随系统模式
+  features:
+    - announce.dismiss
+    - navigation.tracking   #地址栏中的 URL 将自动更新为在目录中突出显示的活动锚点
+    - navigation.tabs # 使用Tab来进行分类
+    - navigation.top # 返回顶部的按钮 在上滑时出现
+    - navigation.indexes # Tab会有一个index.md 而不是在打开Tab时打开第一篇文章
+    # - navigation.footer # 底部的翻页
+    # - navigation.expand # 打开Tab时左侧目录全部展开
+    # - toc.follow
+    - search.share   #搜索分享按钮
+    - search.suggest # 搜索输入一些字母时推荐补全整个单词
+    - search.highlight # 搜索出的文章关键词加入高亮
+    - content.code.copy # 可以通过按钮复制代码
+    - content.action.edit # 点击按钮跳转到编辑页面  需要结合 edit_uri 一起使用
+  language: zh # 一些提示性的文字会变成中文
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/notebook
+edit_uri: edit/main/docs # 编辑按钮跳转的链接
+
+## [top-right corner]
+repo_url: https://github.com/Fanovian/notebook # 右上角的GitHub链接
+repo_name: Fanovian&apos;s Notebook # 鼠标悬浮提示
+
+## [bottom-left corner]
+copyright: Copyright &amp;amp;copy; 2023 - 2025 Fanovian
+
+## [bottom-right corner]
+extra:
+  social: # icons
+    - icon: fontawesome/solid/blog
+      link: https://blog.fanovian.cc/
+      name: Blog | Fanovian
+
+# [Extensions]
+plugins:
+  - search:
+      separator: &apos;[\s\u200b\-]&apos;
+      lang:
+        - en
+        - ja
+  - tags # 给单篇文章添加标签 https://squidfunk.github.io/mkdocs-material/setup/setting-up-tags/?h=tags
+
+markdown_extensions:
+  # - abbr
+  - meta
+  - def_list
+  - attr_list
+  # - admonition
+  # - footnotes
+  - md_in_html
+  - sane_lists
+  - admonition
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  # - pymdownx.caret
+  - pymdownx.critic
+  # - pymdownx.betterem
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.magiclink
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  # - markdown.extensions.attr_list
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+      toc_depth: 4  # 将深度从 4 改为 2
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight: # 代码块高亮
+      anchor_linenums: true
+      # linenums: true # 显示行号
+      # auto_title: true # 显示编程语言名称
+      linenums_style: pymdownx-inline
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+extra_css:
+  - stylesheets/extra.css
+  - https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.css # font-awesome表情支持
+
+# [Navigation]
+nav: 
+  - 主页: index.md
+  - 课程:
+    - course/index.md
+    - 程序设计与算法基础: course/fpa/final-exam-re.md
+    - 数据结构基础: 
+      - course/fds/index.md
+      - 算法分析基础: course/fds/ch1.md
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;nav&lt;/code&gt;、&lt;code&gt;extra_css&lt;/code&gt;、&lt;code&gt;extra_javascript&lt;/code&gt; 等地方引入文件的根目录是 &lt;code&gt;docs&lt;/code&gt; 文件夹，所以你需要在 &lt;code&gt;docs&lt;/code&gt; 文件夹下创建对应的文件夹，然后把文件放进去。&lt;/p&gt;
+&lt;p&gt;正如本文简介所言，文章不会大篇幅介绍这个配置的详细内容，因为 Material for MkDocs 的文档已经写得非常详细了，你可以在 &lt;a href=&quot;https://squidfunk.github.io/mkdocs-material/&quot;&gt;Material for MkDocs 官网&lt;/a&gt; 找到每一个字段的详细解释，也可以自己修改配置文件，然后刷新页面看效果。笔者认为新手的主要任务是先把网站跑起来，然后再慢慢调整样式。&lt;/p&gt;
+&lt;p&gt;除了动态预览，还可以终端输入：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mkdocs build
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这个命令会在当前目录下生成一个 &lt;code&gt;site&lt;/code&gt; 文件夹，里面包含了生成的静态网站文件，这个文件夹就是你需要部署到服务器上的文件夹。&lt;/p&gt;
+&lt;h2&gt;部署到 GitHub Pages&lt;/h2&gt;
+&lt;h3&gt;准备 GitHub 仓库&lt;/h3&gt;
+&lt;p&gt;首先要有一个 GitHub 账号，没有的自行搜索注册。&lt;/p&gt;
+&lt;p&gt;接着需要创建一个空仓库：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果你打算只用一个仓库来存放网站源文件（也就是只有一个网站），那么仓库名应该是 &lt;code&gt;username.github.io&lt;/code&gt;，其中 &lt;code&gt;username&lt;/code&gt; 是你的 GitHub 用户名，这样就可以通过 &lt;code&gt;https://username.github.io&lt;/code&gt; 来访问你的网站；&lt;/li&gt;
+&lt;li&gt;如果你打算有多个网站（比如笔者，一个是笔记本一个是博客），那么仓库名可以随意，但是需要在仓库的 &lt;code&gt;Settings&lt;/code&gt; -&amp;gt; &lt;code&gt;Pages&lt;/code&gt; 中进行一些设置，详情可以参考这篇文章：&lt;a href=&quot;https://zhuanlan.zhihu.com/p/183977963&quot;&gt;如何拥有多个GitHub Pages&lt;/a&gt;。这样设置后，需要通过 &lt;code&gt;https://username.github.io/repo-name&lt;/code&gt; 来访问你的网站。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注册完之后，需要进行设置，让一会儿的 GitHub Actions 拥有权限来操作这个仓库。在 GitHub 仓库的 &lt;code&gt;Settings&lt;/code&gt; -&amp;gt; &lt;code&gt;Actions&lt;/code&gt; -&amp;gt; &lt;code&gt;General&lt;/code&gt; 中的最下方 “Workflow permissions” 选项修改为 “Read and write permissions” 并保存。&lt;/p&gt;
+&lt;h3&gt;Git 环境设置&lt;/h3&gt;
+&lt;p&gt;终端先进入网站根目录，然后执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git init
+git branch -M main
+git remote add origin https://github.com/username/repo-name.git
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;让 Git 管理这个文件夹，并且将默认分支改为 &lt;code&gt;main&lt;/code&gt;，然后将这个文件夹与 GitHub 仓库关联。&lt;/p&gt;
+&lt;h3&gt;自动部署命令&lt;/h3&gt;
+&lt;p&gt;我们每次有新内容 push 到 GitHub 仓库后，都需要手动执行 &lt;code&gt;mkdocs gh-deploy&lt;/code&gt; 命令来部署网站，这样显然不够方便。为此我们利用 GitHub Actions 来实现自动部署。&lt;/p&gt;
+&lt;p&gt;创建目录和文件 &lt;code&gt;.github/workflows/PublishMySite.yml&lt;/code&gt;，内容如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;name: publish site
+on:             # 工作流的触发条件
+  push:         # 一种是本地 push 的时候
+    branches:
+      - main    # 只有在 main 分支 push 时才触发
+  pull_request: # 另一种是 PR 合并时
+    branches:
+      - main
+jobs:           # 工作流的具体内容
+  deploy:
+    runs-on: ubuntu-latest              # 创建一个新的云端虚拟机 使用最新 Ubuntu 系统
+    steps:
+      - uses: actions/checkout@v2       # 先 checkout 到 main 分支
+      - uses: actions/setup-python@v2   # 再安装 Python3 和相关环境
+        with:
+          python-version: 3.x
+      - run: pip install mkdocs-material # 使用 pip 包管理工具安装 mkdocs-material
+      - run: mkdocs gh-deploy --force   # 使用 mkdocs-material 部署 gh-pages 分支
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这个脚本文件实际上就是在操作“服务器”进行自动部署，当我们 push 代码到 GitHub 仓库的 &lt;code&gt;main&lt;/code&gt; 分支时，GitHub Actions 会自动执行这个脚本，将网站部署到 GitHub Pages 上。&lt;/p&gt;
+&lt;p&gt;编辑好之后，网站的文件结构应该是这样的：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;.
+├── .github
+│   └── workflows
+│       └── PublishMySite.yml
+├── docs
+│   └── index.md
+└── mkdocs.yml
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;其中 &lt;code&gt;docs&lt;/code&gt; 文件夹里面是你自己的 Markdown 文件，也许不止一个。&lt;/p&gt;
+&lt;h3&gt;提交并推送&lt;/h3&gt;
+&lt;p&gt;当做完你的网站内容时，执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git add .  # 添加所有文件到暂存区
+git commit -m &quot;Initial commit&quot;  # 提交到本地仓库，引号内是提交信息
+git push -u origin main  # 推送到远程仓库
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;push 完之后，可以进入 GitHub 仓库的 Actions 版块查看部署进度。如果发生错误，可以在 Actions 的日志中查看详细信息，你的邮箱也会收到错误信息。&lt;/p&gt;
+&lt;h2&gt;大功告成&lt;/h2&gt;
+&lt;p&gt;一切正常的话，你的网站应该已经部署到了 GitHub Pages 上，可以通过 &lt;code&gt;https://username.github.io&lt;/code&gt; 或者 &lt;code&gt;https://username.github.io/repo-name&lt;/code&gt; 来访问你的网站了。&lt;/p&gt;
+</content:encoded></item></channel></rss>
