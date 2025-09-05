@@ -1,4 +1,101 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>零式岚の地下室</title><description>主页</description><link>https://fuwari.vercel.app/</link><language>zh_CN</language><item><title>MkDocs 美化与进阶</title><link>https://fuwari.vercel.app/posts/mkdocs-advance/</link><guid isPermaLink="true">https://fuwari.vercel.app/posts/mkdocs-advance/</guid><description>本文通过几个例子，介绍如何对 MkDocs 网站进行美化和功能扩展，适合有一定基础的用户参考。</description><pubDate>Sun, 02 Feb 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;:::note[说明]
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>零式岚の地下室</title><description>主页</description><link>https://fuwari.vercel.app/</link><language>zh_CN</language><item><title>跨平台部署 CMake 与 vcpkg 进行 C++ 开发</title><link>https://fuwari.vercel.app/posts/vcpkg-vscode/</link><guid isPermaLink="true">https://fuwari.vercel.app/posts/vcpkg-vscode/</guid><description>本文介绍了如何在 VSCode 中配置 CMake 和使用 vcpkg，以便更高效地进行 C++ 开发。</description><pubDate>Wed, 20 Aug 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;前言与基本概念&lt;/h2&gt;
+&lt;p&gt;近日在做本科毕设的实验环境搭建，涉及到了基于 vcpkg 进行 C++ 库管理的开发工作。由于程序以 FLTK 为 GUI 框架且遵循 MVVM 架构，需要使用 CMake 进行项目配置。笔者在手持 Mac 与 Windows 双设备的同时，被要求进行 Windows/Linux 双平台的软件开发，为此经过资料收集与实践，最终总结出在 Windows/Linux/Mac 三平台下，如何在 VSCode 中配置 CMake 并使用 vcpkg 的方法，能做到不同平台下的开发体验一致。&lt;/p&gt;
+&lt;p&gt;我们的目标是在不同的平台上用近乎相同的方式进行 vcpkg + CMake 项目的配置。在&lt;a href=&quot;https://learn.microsoft.com/zh-cn/vcpkg/&quot;&gt;微软官方的 vcpkg 文档&lt;/a&gt;中，已经介绍了 vcpkg 的相关概念。简要来说，vcpkg 是微软推出的基于 C++ 语言的跨平台包管理工具，可以看作是 C++ 领域的 npm 或 pip。&lt;/p&gt;
+&lt;p&gt;CMake 是适用于 C/C++ 项目的跨平台构建系统，通过 &lt;code&gt;CMakeLists.txt&lt;/code&gt; 文件来定义项目的构建过程。&lt;strong&gt;vcpkg 与 CMake 的结合使用，可以简化 C++ 项目的依赖管理和构建配置。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这种项目的一般配置与构建流程是：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;配置好 CMake 与 vcpkg 环境；&lt;/li&gt;
+&lt;li&gt;在项目的 &lt;code&gt;CMakeLists.txt&lt;/code&gt; 文件中指定 vcpkg 的工具链文件；&lt;/li&gt;
+&lt;li&gt;安装 vcpkg 所涉及的依赖库；&lt;/li&gt;
+&lt;li&gt;使用 CMake 生成构建文件并编译项目。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;上述工具都是跨平台的，至于代码编辑器，我们使用同样跨平台的 Microsoft Visual Studio Code (VSCode)，并安装相关插件以支持 CMake 和 C++ 开发。&lt;/p&gt;
+&lt;h2&gt;环境配置&lt;/h2&gt;
+&lt;p&gt;:::important[注意]
+下文中，默认读者掌握基本的命令行操作和 Git 使用方法。同时，Windows 平台下，使用 Powershell 作为命令行工具。
+:::&lt;/p&gt;
+&lt;h3&gt;CMake 环境&lt;/h3&gt;
+&lt;p&gt;Windows 平台，前往 &lt;a href=&quot;https://cmake.org&quot;&gt;CMake 官方网站&lt;/a&gt;下载最新版本的安装包，安装时注意勾选“Add CMake to the system PATH for all users”选项，以便在命令行中直接使用 &lt;code&gt;cmake&lt;/code&gt; 命令。&lt;/p&gt;
+&lt;p&gt;Linux 平台，可以使用包管理器安装 CMake。例如，在 Ubuntu 上可以运行以下命令：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sudo apt-get update
+sudo apt-get install cmake
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;macOS 平台，可以使用 Homebrew 安装 CMake：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;brew install cmake
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;不管哪种平台安装，最后通过命令行输入 &lt;code&gt;cmake --version&lt;/code&gt; 都可以查看是否安装成功。&lt;/p&gt;
+&lt;h3&gt;vcpkg 环境&lt;/h3&gt;
+&lt;p&gt;首先在你所知道的一个路径下，克隆 vcpkg 仓库：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git clone https://github.com/microsoft/vcpkg.git
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;然后执行启动脚本，Windows 平台运行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cd vcpkg; .\bootstrap-vcpkg.bat
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Linux 和 macOS 平台运行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cd vcpkg &amp;amp;&amp;amp; ./bootstrap-vcpkg.sh
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;最后需要将 vcpkg 添加到环境变量，以便在命令行中直接使用 &lt;code&gt;vcpkg&lt;/code&gt; 命令。&lt;/p&gt;
+&lt;p&gt;Windows 平台可以通过系统设置添加环境变量，Linux 和 macOS 平台可以在 &lt;code&gt;~/.bashrc&lt;/code&gt; 或 &lt;code&gt;~/.zshrc&lt;/code&gt; 文件（根据你实际正在使用的 shell）中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;export VCPKG_ROOT=/path/to/vcpkg
+export PATH=$VCPKG_ROOT:$PATH
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;请注意这里的 &lt;code&gt;/path/to/vcpkg&lt;/code&gt; 替换为你实际的 vcpkg 路径。&lt;/p&gt;
+&lt;p&gt;最后做到在命令行中输入 &lt;code&gt;vcpkg --version&lt;/code&gt; 显示版本号即可。&lt;/p&gt;
+&lt;h2&gt;项目配置&lt;/h2&gt;
+&lt;p&gt;这里以一个 FLTK 界面程序为例，参见&lt;a href=&quot;https://gitee.com/YXcourse/SJDXQcourseware/tree/master/lesson2/program/ex1/Hello/&quot;&gt;仓库&lt;/a&gt;中的 Hello 项目。打开项目目录，可以看到：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;.
+├── CMakeLists.txt
+├── code
+│   ├── CMakeLists.txt
+│   └── main.cpp
+├── vcpkg-configuration.json
+└── vcpkg.json
+
+2 directories, 5 files
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这里 code 文件夹中的 CMakeLists 已经配置好，我们关心根目录下的 CMakeLists.txt 文件：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cmake_minimum_required(VERSION 3.10)
+
+project(Hello)
+
+find_package(FLTK CONFIG REQUIRED)
+
+add_subdirectory(code code)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;:::warning[注意]
+第三句的 &lt;code&gt;fltk&lt;/code&gt; 需要改为大写 &lt;code&gt;FLTK&lt;/code&gt;，具体原因将在后面解释。
+:::&lt;/p&gt;
+&lt;p&gt;这里的第三句 &lt;code&gt;find_package(FLTK CONFIG REQUIRED)&lt;/code&gt; 指定了需要使用 FLTK 库，并且要求 CMake 使用配置模式（CONFIG）来查找该库。配置模式意味着 CMake 会寻找由 vcpkg 提供的配置文件，这些文件通常位于 vcpkg 的安装目录中。&lt;/p&gt;
+&lt;p&gt;再查看 vcpkg.json 文件：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;dependencies&quot;: [
+    &quot;fltk&quot;
+  ]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这里指定了项目所需的依赖库为 FLTK，vcpkg 会根据这个文件来安装和管理项目的依赖。所以我们应该先 &lt;code&gt;vcpkg install&lt;/code&gt; 来进行 FLTK 库的安装，然后再使用 CMake 进行项目的配置和构建。&lt;/p&gt;
+&lt;p&gt;但是总是这样做未免繁琐，我们在 VSCode 中使用 CMake 插件来简化流程。&lt;/p&gt;
+&lt;h3&gt;VSCode 配置&lt;/h3&gt;
+&lt;p&gt;先安装好 CMake Tools 插件和 C/C++ 插件。安装好后打开项目时上方会弹出选择工具链的选项，选择你想要用的编译器即可，例如 gcc 或是 MSVC 等等。&lt;/p&gt;
+&lt;p&gt;然后在项目根目录下新建 &lt;code&gt;.vscode/settings.json&lt;/code&gt; 文件，内容如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;cmake.configureSettings&quot;: {
+    &quot;CMAKE_TOOLCHAIN_FILE&quot;: &quot;/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake&quot;
+    // 这里的 /path/to/vcpkg 替换为你实际的 vcpkg 路径
+    // 对于 Windows 平台，使用符合 Windows 格式的路径
+  },
+  &quot;cmake.generator&quot;: &quot;Ninja&quot;,  // 对于 macOS 和 Linux 平台，使用 &quot;Unix Makefiles&quot;
+  &quot;cmake.buildDirectory&quot;: &quot;${workspaceFolder}/build&quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这里的 &lt;code&gt;CMAKE_TOOLCHAIN_FILE&lt;/code&gt; 指定了 vcpkg 的工具链文件路径，CMake 会使用这个文件来配置项目的构建环境，从而自动识别和链接通过 vcpkg 安装的库。&lt;/p&gt;
+&lt;p&gt;修改好后，点击下方状态栏的启动，即可开启配置过程。配置成功后，点击下方状态栏的构建按钮，即可进行项目的编译。&lt;/p&gt;
+&lt;h3&gt;Tips&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;对于某些系统，在配置项目的过程中可能出错，这时可以去查看错误报告进行相应的修正。例如笔者在 Linux 平台部署的时候多次遇到错误，经过检查是没有安装 opengl 等工具，apt 安装后再次配置即可成功。&lt;/li&gt;
+&lt;li&gt;CMakeLists.txt 文件中的包名需要与 vcpkg 中的包名完全一致，笔者在 macOS 平台上使用小写 fltk 时多次报错，改为大写 FLTK 后成功。&lt;/li&gt;
+&lt;/ul&gt;
+</content:encoded></item><item><title>MkDocs 美化与进阶</title><link>https://fuwari.vercel.app/posts/mkdocs-advance/</link><guid isPermaLink="true">https://fuwari.vercel.app/posts/mkdocs-advance/</guid><description>本文通过几个例子，介绍如何对 MkDocs 网站进行美化和功能扩展，适合有一定基础的用户参考。</description><pubDate>Sun, 02 Feb 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;:::note[说明]
 本文核心内容在笔者的笔记本网站&lt;a href=&quot;https://note.flyburg.cc/self/mkdocs/&quot;&gt;原文&lt;/a&gt;中亦有记载，此页面为整理重制版。
 :::&lt;/p&gt;
 &lt;p&gt;有了前面的一系列工作，我们的 MkDocs 网站已经可以正常生成和部署了，请读者务必对整套流程熟悉之后再继续阅读本文。&lt;/p&gt;
